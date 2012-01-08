@@ -28,7 +28,12 @@ module Mongoid #:nodoc:
     #
     # @return [ true, false ] True if successful, false if not.
     def destroy(options = {})
-      run_callbacks(:destroy) { remove(options) }
+      self.flagged_for_destroy = true
+      run_callbacks(:destroy) do
+        remove(options)
+      end.tap do
+        self.flagged_for_destroy = false
+      end
     end
 
     # Insert a new document into the database. Will return the document
@@ -190,7 +195,7 @@ module Mongoid #:nodoc:
         _creating do
           new(attributes, options, &block).tap do |doc|
             fail_validate!(doc) if doc.insert.errors.any?
-            fail_callback!(doc, :create!) if doc.new?
+            fail_callback!(doc, :create!) if doc.new_record?
           end
         end
       end
@@ -209,7 +214,8 @@ module Mongoid #:nodoc:
       #
       # @return [ Integer ] The number of documents deleted.
       def delete_all(conditions = nil)
-        selector = (conditions || {})[:conditions] || {}
+        conds = conditions || {}
+        selector = conds[:conditions] || conds
         selector.merge!(:_type => name) if hereditary?
         collection.find(selector).count.tap do
           collection.remove(selector, Safety.merge_safety_options)
@@ -230,8 +236,9 @@ module Mongoid #:nodoc:
       # @param [ Hash ] conditions Optional conditions to destroy by.
       #
       # @return [ Integer ] The number of documents destroyed.
-      def destroy_all(conditions = {})
-        documents = all(conditions)
+      def destroy_all(conditions = nil)
+        conds = conditions || {}
+        documents = where(conds[:conditions] || conds)
         documents.count.tap do
           documents.each { |doc| doc.destroy }
         end

@@ -8,6 +8,52 @@ describe Mongoid::Finders do
 
   describe "#find" do
 
+    context "when using integer ids" do
+
+      before(:all) do
+        Person.field(:_id, type: Integer)
+      end
+
+      after(:all) do
+        Person.field(
+          :_id,
+          type: BSON::ObjectId,
+          pre_processed: true,
+          default: ->{ BSON::ObjectId.new }
+        )
+      end
+
+      context "when passed a string" do
+
+        let!(:person) do
+          Person.create(:_id => 1, :ssn => "123-44-4321")
+        end
+
+        let(:from_db) do
+          Person.find("1")
+        end
+
+        it "returns the matching document" do
+          from_db.should eq(person)
+        end
+      end
+
+      context "when passed an array of strings" do
+
+        let!(:person) do
+          Person.create(:_id => 2, :ssn => "123-44-4321")
+        end
+
+        let(:from_db) do
+          Person.find([ "2" ])
+        end
+
+        it "returns the matching documents" do
+          from_db.should eq([ person ])
+        end
+      end
+    end
+
     context "when using string ids" do
 
       let!(:person) do
@@ -21,11 +67,21 @@ describe Mongoid::Finders do
       end
 
       before(:all) do
-        Person.identity :type => String
+        Person.field(
+          :_id,
+          type: String,
+          pre_processed: true,
+          default: ->{ BSON::ObjectId.new.to_s }
+        )
       end
 
       after(:all) do
-        Person.identity :type => BSON::ObjectId
+        Person.field(
+          :_id,
+          type: BSON::ObjectId,
+          pre_processed: true,
+          default: ->{ BSON::ObjectId.new }
+        )
       end
 
       context "with an id as an argument" do
@@ -142,7 +198,12 @@ describe Mongoid::Finders do
       end
 
       before(:all) do
-        Person.identity :type => BSON::ObjectId
+        Person.field(
+          :_id,
+          type: BSON::ObjectId,
+          pre_processed: true,
+          default: ->{ BSON::ObjectId.new }
+        )
       end
 
       context "when passed a BSON::ObjectId as an argument" do
@@ -285,7 +346,7 @@ describe Mongoid::Finders do
         end
 
         it "creates a new document" do
-          person.should be_new
+          person.should be_new_record
         end
 
         it "sets the attributes" do
@@ -302,7 +363,7 @@ describe Mongoid::Finders do
         end
 
         it "creates a new document" do
-          person.should be_new
+          person.should be_new_record
         end
 
         it "sets the attributes" do

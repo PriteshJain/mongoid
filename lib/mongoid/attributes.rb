@@ -26,7 +26,20 @@ module Mongoid #:nodoc:
       attribute = read_attribute(name)
       ! attribute.blank? || attribute == false
     end
-    alias :has_attribute? :attribute_present?
+
+    # Does the document have the provided attribute?
+    #
+    # @example Does the document have the attribute?
+    #   model.has_attribute?(:name)
+    #
+    # @param [ String, Symbol ] name The name of the attribute.
+    #
+    # @return [ true, false ] If the key is present in the attributes.
+    #
+    # @since 3.0.0
+    def has_attribute?(name)
+      attributes.has_key?(name.to_s)
+    end
 
     # Read a value from the document attributes. If the value does not exist
     # it will return nil.
@@ -130,9 +143,7 @@ module Mongoid #:nodoc:
     # @since 2.2.1
     def assign_attributes(attrs = nil, options = {})
       _assigning do
-        process(attrs, options[:as] || :default, !options[:without_protection]) do |document|
-          document.identify if new? && id.blank?
-        end
+        process(attrs, options[:as] || :default, !options[:without_protection])
       end
     end
 
@@ -156,24 +167,6 @@ module Mongoid #:nodoc:
     alias :attributes= :write_attributes
 
     protected
-
-    # Set any missing default values in the attributes.
-    #
-    # @example Get the raw attributes after defaults have been applied.
-    #   person.apply_defaults
-    #
-    # @return [ Hash ] The raw attributes.
-    #
-    # @since 2.0.0.rc.8
-    def apply_defaults
-      defaults.each do |name|
-        unless attributes.has_key?(name)
-          if field = fields[name]
-            attributes[name] = field.eval_default(self)
-          end
-        end
-      end
-    end
 
     # Used for allowing accessor methods for dynamic attributes.
     #
@@ -226,8 +219,12 @@ module Mongoid #:nodoc:
           alias :#{name} :#{original}
           alias :#{name}= :#{original}=
           alias :#{name}? :#{original}?
+          alias :#{name}_change :#{original}_change
+          alias :#{name}_changed? :#{original}_changed?
+          alias :reset_#{name}! :reset_#{original}!
+          alias :#{name}_was :#{original}_was
+          alias :#{name}_will_change! :#{original}_will_change!
         RUBY
-        super
       end
     end
   end

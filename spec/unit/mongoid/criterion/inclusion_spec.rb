@@ -265,10 +265,6 @@ describe Mongoid::Criterion::Inclusion do
           Post.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -278,7 +274,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           post_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -291,7 +286,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Post][{"person_id" => person.id}].should eq([ post ])
+          map[Post.collection_name][{"person_id" => person.id}].should eq([ post ])
         end
       end
 
@@ -309,10 +304,6 @@ describe Mongoid::Criterion::Inclusion do
           Post.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -322,7 +313,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           post_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -335,7 +325,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Post][{"person_id" => person.id}].should eq([ post ])
+          map[Post.collection_name][{"person_id" => person.id}].should eq([ post ])
         end
       end
     end
@@ -373,10 +363,6 @@ describe Mongoid::Criterion::Inclusion do
           Game.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -386,7 +372,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           game_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -399,7 +384,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Game][{"person_id" => person.id}].should eq(game)
+          map[Game.collection_name][{"person_id" => person.id}].should eq(game)
         end
       end
 
@@ -417,10 +402,6 @@ describe Mongoid::Criterion::Inclusion do
           Game.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -430,7 +411,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           game_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -443,7 +423,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Game][{"person_id" => person.id}].should eq(game)
+          map[Game.collection_name][{"person_id" => person.id}].should eq(game)
         end
       end
     end
@@ -507,7 +487,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Person][person.id].should eq(person)
+          map[Person.collection_name][person.id].should eq(person)
         end
       end
 
@@ -551,7 +531,7 @@ describe Mongoid::Criterion::Inclusion do
 
         it "puts the related documents in the identity map" do
           criteria.entries
-          map[Person][person.id].should eq(person)
+          map[Person.collection_name][person.id].should eq(person)
         end
       end
     end
@@ -570,6 +550,25 @@ describe Mongoid::Criterion::Inclusion do
   end
 
   describe "#where" do
+
+    context "when searching on a custom type" do
+
+      let(:criteria) do
+        Bar.where(:lat_lng => {
+          "$nearSphere" => [ 20, 20 ],
+          "$maxDistance" => 1.5
+        })
+      end
+
+      it "does not convert the selector" do
+        criteria.selector.should eq({
+          :lat_lng => {
+            "$nearSphere" => [ 20, 20 ],
+            "$maxDistance" => 1.5
+          }
+        })
+      end
+    end
 
     context "when provided a hash" do
 
@@ -832,7 +831,7 @@ describe Mongoid::Criterion::Inclusion do
         context "#size" do
 
           let(:criteria) do
-            base.where(:aliases.size => 2)
+            base.where(:aliases.count => 2)
           end
 
           it "returns a selector matching a size clause" do

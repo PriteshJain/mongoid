@@ -31,7 +31,7 @@ module Mongoid #:nodoc:
     #
     # @return [ Document ] The new document.
     def initialize_copy(other)
-      @attributes = other.as_document
+      other.as_document
       instance_variables.each { |name| remove_instance_variable(name) }
       COPYABLES.each do |name|
         value = other.instance_variable_get(name)
@@ -42,7 +42,7 @@ module Mongoid #:nodoc:
         attributes["version"] = 1
       end
       @new_record = true
-      identify
+      apply_defaults
     end
   end
 end

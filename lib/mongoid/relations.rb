@@ -44,9 +44,7 @@ module Mongoid # :nodoc:
     include Reflections
     include Synchronization
 
-    included do
-      attr_accessor :metadata
-    end
+    attr_accessor :metadata
 
     # Determine if the document itself is embedded in another document via the
     # proper channels. (If it has a parent document.)
@@ -94,7 +92,7 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def referenced_many?
-      metadata && metadata.macro == :references_many
+      metadata && metadata.macro == :has_many
     end
 
     # Determine if the document is part of an references_one relation.
@@ -106,7 +104,7 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def referenced_one?
-      metadata && metadata.macro == :references_one
+      metadata && metadata.macro == :has_one
     end
 
     # Convenience method for iterating through the loaded relations and

@@ -26,11 +26,6 @@ module Mongoid #:nodoc:
       extend ActiveSupport::Concern
 
       included do
-        # @todo: Durran: Pull out in 3.0.0
-        unless method_defined?(:default)
-          alias :default :default_val
-        end
-
         class_attribute :cast_on_read
       end
 
@@ -81,6 +76,18 @@ module Mongoid #:nodoc:
         end
       end
 
+      # Is this field a foreign key?
+      #
+      # @example Is the field a foreign key?
+      #   field.foreign_key?
+      #
+      # @return [ true, false ] If the field is a foreign key.
+      #
+      # @since 2.4.0
+      def foreign_key?
+        !!options[:identity]
+      end
+
       # Is the field localized or not?
       #
       # @example Is the field localized?
@@ -117,6 +124,29 @@ module Mongoid #:nodoc:
         @object_id_field ||= (type == BSON::ObjectId)
       end
 
+      # Does the field pre-process it's default value?
+      #
+      # @example Does the field pre-process the default?
+      #   field.pre_processed?
+      #
+      # @return [ true, false ] If the field's default is pre-processed.
+      #
+      # @since 3.0.0
+      def pre_processed?
+        @pre_processed ||=
+          (options[:pre_processed] || (default_val && !default_val.is_a?(::Proc)))
+      end
+
+      # Can the field vary in size, similar to arrays.
+      #
+      # @example Is the field varying in size?
+      #   field.resizable?
+      #
+      # @return [ false ] false by default.
+      #
+      # @since 2.4.0
+      def resizable?; false; end
+
       # Serialize the object from the type defined in the model to a MongoDB
       # compatible object to store.
       #
@@ -129,6 +159,18 @@ module Mongoid #:nodoc:
       #
       # @since 2.1.0
       def serialize(object); object; end
+
+      # Convert the provided object to a Mongoid criteria friendly value.
+      #
+      # @example Convert the field.
+      #   field.selection(object)
+      #
+      # @param [ Object ] The object to convert.
+      #
+      # @return [ Object ] The converted object.
+      #
+      # @since 2.4.0
+      def selection(object); object; end
 
       # Get the type of this field - inferred from the class name.
       #
@@ -175,9 +217,6 @@ module Mongoid #:nodoc:
             field.label = options[:label]
             field.localize = options[:localize]
             field.default_val = options[:default]
-            unless field.default_val
-              field.default_val = {} if field.localized?
-            end
           end
         end
 

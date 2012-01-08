@@ -12,17 +12,53 @@ require "rspec"
 require "ammeter/init"
 
 LOGGER = Logger.new($stdout)
-DATABASE_ID = Process.pid
+
+def database_id
+  ENV["CI"] ? "mongoid_#{Process.pid}" : "mongoid_test"
+end
 
 Mongoid.configure do |config|
-  database = Mongo::Connection.new.db("mongoid_#{DATABASE_ID}")
+  database = Mongo::Connection.new.db(database_id)
   database.add_user("mongoid", "test")
   config.master = database
   config.logger = nil
 end
 
-Dir[ File.join(MODELS, "*.rb") ].sort.each { |file| require File.basename(file) }
-Dir[ File.join(SUPPORT, "*.rb") ].each { |file| require File.basename(file) }
+Dir[ File.join(MODELS, "*.rb") ].sort.each do |file|
+  name = File.basename(file, ".rb")
+  autoload name.camelize.to_sym, name
+end
+
+module Medical
+  autoload :Patient, "medical/patient"
+  autoload :Prescription, "medical/prescription"
+end
+
+module MyCompany
+  module Model
+    autoload :TrackingId, "my_company/model/tracking_id"
+    autoload :TrackingIdValidationHistory, "my_company/model/tracking_id_validation_history"
+  end
+end
+
+module Trees
+  autoload :Node, "trees/node"
+end
+
+module Custom
+  autoload :String, "custom/string"
+  autoload :Type, "custom/type"
+end
+
+module Mongoid
+  module MyExtension
+    autoload :Object, "mongoid/my_extension/object"
+  end
+end
+
+Dir[ File.join(SUPPORT, "*.rb") ].each do |file|
+  require File.basename(file)
+end
 
 RSpec.configure do |config|
   config.mock_with(:mocha)
@@ -32,7 +68,9 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    Mongoid.master.connection.drop_database("mongoid_#{DATABASE_ID}")
+    if ENV["CI"]
+      Mongoid.master.connection.drop_database(database_id)
+    end
   end
 
   # We filter out specs that require authentication to MongoHQ if the

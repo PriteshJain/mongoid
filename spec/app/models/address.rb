@@ -1,6 +1,8 @@
 class Address
   include Mongoid::Document
 
+  field :_id, type: String, default: ->{ street.try(:parameterize) }
+
   attr_accessor :mode
 
   field :address_type
@@ -13,9 +15,10 @@ class Address
   field :services, :type => Array
   field :latlng, :type => Array
   field :map, :type => Hash
-  key :street
-  embeds_many :locations
-  embeds_one :code
+
+  embeds_many :locations, :validate => false
+  embeds_one :code, :validate => false
+  embeds_one :target, :as => :targetable, :validate => false
 
   embedded_in :addressable, :polymorphic => true do
     def extension
@@ -26,7 +29,7 @@ class Address
     end
   end
 
-  accepts_nested_attributes_for :locations, :code
+  accepts_nested_attributes_for :locations, :code, :target
 
   belongs_to :account
 

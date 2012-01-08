@@ -197,13 +197,13 @@ module Mongoid # :nodoc:
       # @example Get the eager loading criteria.
       #   metadata.eager_load(criteria)
       #
-      # @param [ Criteria ] criteria The criteria to load from.
+      # @param [ Array<Object> ] ids The ids of the returned parents.
       #
       # @return [ Criteria ] The eager loading criteria.
       #
       # @since 2.2.0
-      def eager_load(criteria)
-        relation.eager_load(self, criteria.clone)
+      def eager_load(ids)
+        relation.eager_load(self, ids)
       end
 
       # Will determine if the relation is an embedded one or not. Currently
@@ -807,7 +807,7 @@ module Mongoid # :nodoc:
         return self[:foreign_key].to_s if self[:foreign_key]
         suffix = relation.foreign_key_suffix
         if relation.stores_foreign_key?
-          if relation.macro == :references_and_referenced_in_many
+          if relation.macro == :has_and_belongs_to_many
             "#{name.to_s.singularize}#{suffix}"
           else
             "#{name}#{suffix}"

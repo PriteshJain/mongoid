@@ -68,8 +68,7 @@ module Mongoid #:nodoc:
     #
     # @since 2.0.0
     def freeze
-      attributes.freeze
-      self
+      tap { |doc| doc.as_document.freeze }
     end
 
     # Checks if the document is frozen
@@ -81,7 +80,7 @@ module Mongoid #:nodoc:
     #
     # @since 2.0.0
     def frozen?
-      raw_attributes.frozen?
+      attributes.frozen?
     end
 
     # Delegates to id in order to allow two records of the same type and id to
@@ -95,17 +94,7 @@ module Mongoid #:nodoc:
     #
     # @return [ Integer ] The hash of the document's id.
     def hash
-      raw_attributes["_id"].hash
-    end
-
-    # Generate an id for this +Document+.
-    #
-    # @example Create the id.
-    #   person.identify
-    #
-    # @return [ BSON::ObjectId, String ] A newly created id.
-    def identify
-      Identity.new(self).create
+      attributes["_id"].hash
     end
 
     # Instantiate a new +Document+, setting the Document's attributes if
@@ -128,12 +117,28 @@ module Mongoid #:nodoc:
         @new_record = true
         @attributes ||= {}
         options ||= {}
+        apply_pre_processed_defaults
         process(attrs, options[:as] || :default, !options[:without_protection]) do
-          identify
-          apply_defaults
           yield(self) if block_given?
         end
+        apply_post_processed_defaults
         run_callbacks(:initialize) { self }
+      end
+    end
+
+    # Return the key value for the document.
+    #
+    # @example Return the key.
+    #   document.to_key
+    #
+    # @return [ Object ] The id of the document or nil if new.
+    #
+    # @since 2.4.0
+    def to_key
+      if destroyed?
+        [ id ]
+      else
+        persisted? ? [ id ] : nil
       end
     end
 
@@ -157,6 +162,7 @@ module Mongoid #:nodoc:
     # @return [ Hash ] A hash of all attributes in the hierarchy.
     def as_document
       attributes.tap do |attrs|
+        return attrs if frozen?
         relations.each_pair do |name, meta|
           if meta.embedded?
             relation = send(name)
@@ -189,6 +195,27 @@ module Mongoid #:nodoc:
       end
     end
 
+    # Print out the cache key. This will append different values on the
+    # plural model name.
+    #
+    # If new_record?     - will append /new
+    # If not             - will append /id-updated_at.to_s(:number)
+    # Without updated_at - will append /id
+    #
+    # This is usually called insode a cache() block
+    #
+    # @example Returns the cache key
+    #   document.cache_key
+    #
+    # @return [ String ] the string with or without updated_at
+    #
+    # @since 2.4.0
+    def cache_key
+      return "#{model_key}/new" if new_record?
+      return "#{model_key}/#{id}-#{updated_at.utc.to_s(:number)}" if updated_at
+      "#{model_key}/#{id}"
+    end
+
     private
 
     # Returns the logger
@@ -198,6 +225,18 @@ module Mongoid #:nodoc:
     # @since 2.2.0
     def logger
       Mongoid.logger
+    end
+
+    # Get the name of the model used in caching.
+    #
+    # @example Get the model key.
+    #   model.model_key
+    #
+    # @return [ String ] The model key.
+    #
+    # @since 2.4.0
+    def model_key
+      @model_cache_key ||= "#{self.class.model_name.cache_key}"
     end
 
     # Implement this for calls to flatten on array.
@@ -241,7 +280,7 @@ module Mongoid #:nodoc:
         attributes = attrs || {}
         allocate.tap do |doc|
           doc.instance_variable_set(:@attributes, attributes)
-          doc.send(:apply_defaults)
+          doc.apply_defaults
           IdentityMap.set(doc) unless _loading_revision?
           doc.run_callbacks(:initialize) { doc }
         end

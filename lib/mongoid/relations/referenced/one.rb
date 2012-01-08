@@ -53,7 +53,11 @@ module Mongoid # :nodoc:
         def substitute(replacement)
           unbind_one
           if persistable?
-            metadata.destructive? ? send(metadata.dependent) : save
+            if metadata.destructive?
+              send(metadata.dependent)
+            else
+              save if persisted?
+            end
           end
           return nil unless replacement
           One.new(base, replacement, metadata)
@@ -128,14 +132,14 @@ module Mongoid # :nodoc:
           #   Proxy.eager_load(metadata, criteria)
           #
           # @param [ Metadata ] metadata The relation metadata.
-          # @param [ Criteria ] criteria The criteria being used.
+          # @param [ Array<Object> ] ids The ids of the base docs.
           #
           # @return [ Criteria ] The criteria to eager load the relation.
           #
           # @since 2.2.0
-          def eager_load(metadata, criteria)
+          def eager_load(metadata, ids)
             klass, foreign_key = metadata.klass, metadata.foreign_key
-            klass.any_in(foreign_key => criteria.load_ids("_id").uniq).each do |doc|
+            klass.any_in(foreign_key => ids).each do |doc|
               IdentityMap.set_one(doc, foreign_key => doc.send(foreign_key))
             end
           end
@@ -183,9 +187,9 @@ module Mongoid # :nodoc:
           # @example Get the macro.
           #   Referenced::One.macro
           #
-          # @return [ Symbol ] :references_one.
+          # @return [ Symbol ] :has_one.
           def macro
-            :references_one
+            :has_one
           end
 
           # Return the nested builder that is responsible for generating the documents

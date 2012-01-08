@@ -8,6 +8,8 @@ module Mongoid #:nodoc
     included do
       extend ActiveModel::Translation
       extend Mongoid::Finders
+
+      class_attribute :paranoid
     end
 
     include ActiveModel::Conversion
@@ -28,7 +30,6 @@ module Mongoid #:nodoc
     include Mongoid::Indexes
     include Mongoid::Inspection
     include Mongoid::JSON
-    include Mongoid::Keys
     include Mongoid::Matchers
     include Mongoid::NamedScope
     include Mongoid::NestedAttributes
@@ -58,7 +59,6 @@ module Mongoid #:nodoc
       Mongoid::Indexes,
       Mongoid::Inspection,
       Mongoid::JSON,
-      Mongoid::Keys,
       Mongoid::Matchers,
       Mongoid::NamedScope,
       Mongoid::NestedAttributes,

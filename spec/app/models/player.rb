@@ -15,6 +15,12 @@ class Player
   named_scope :deaths_under, lambda { |count| criteria.where(:deaths.lt => count) }
   scope :deaths_over, lambda { |count| criteria.where(:deaths.gt => count) }
 
+  has_many :weapons
+  has_one :powerup
+
+  embeds_many :implants
+  embeds_one :augmentation
+
   class << self
     def alive
       criteria.where(:status => "Alive")

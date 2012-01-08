@@ -76,6 +76,7 @@ module Mongoid # :nodoc:
         # @param [ Proc ] block Optional block for defining extensions.
         def embeds_many(name, options = {}, &block)
           characterize(name, Embedded::Many, options, &block).tap do |meta|
+            self.cyclic = true if options[:cyclic]
             relate(name, meta)
             validates_relation(meta)
           end
@@ -102,8 +103,9 @@ module Mongoid # :nodoc:
         # @param [ Proc ] block Optional block for defining extensions.
         def embeds_one(name, options = {}, &block)
           characterize(name, Embedded::One, options, &block).tap do |meta|
+            self.cyclic = true if options[:cyclic]
             relate(name, meta)
-            builder(name, meta).creator(name)
+            builder(name, meta).creator(name, meta)
             validates_relation(meta)
           end
         end
@@ -134,8 +136,6 @@ module Mongoid # :nodoc:
             validates_relation(meta)
           end
         end
-        alias :belongs_to_related :belongs_to
-        alias :referenced_in :belongs_to
 
         # Adds a relational association from a parent Document to many
         # Documents in another database or collection.
@@ -163,8 +163,6 @@ module Mongoid # :nodoc:
             validates_relation(meta)
           end
         end
-        alias :has_many_related :has_many
-        alias :references_many :has_many
 
         # Adds a relational many-to-many association between many of this
         # Document and many of another Document.
@@ -195,7 +193,6 @@ module Mongoid # :nodoc:
             synced(meta)
           end
         end
-        alias :references_and_referenced_in_many :has_and_belongs_to_many
 
         # Adds a relational association from the child Document to a Document in
         # another database or collection.
@@ -219,12 +216,10 @@ module Mongoid # :nodoc:
           characterize(name, Referenced::One, options, &block).tap do |meta|
             relate(name, meta)
             reference(meta)
-            builder(name, meta).creator(name).autosave(meta)
+            builder(name, meta).creator(name, meta).autosave(meta)
             validates_relation(meta)
           end
         end
-        alias :has_one_related :has_one
-        alias :references_one :has_one
 
         private
 

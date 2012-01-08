@@ -90,6 +90,23 @@ describe Mongoid::Validations::UniquenessValidator do
           dictionary.errors[:name].should eq([ "is already taken" ])
         end
       end
+
+      context "when providing a message" do
+
+        let(:options) do
+          { :attributes => dictionary.attributes, :message => "my test message" }
+        end
+
+        before do
+          Dictionary.expects(:where).with(:name => "Oxford").returns(criteria)
+          criteria.expects(:exists?).returns(true)
+          validator.validate_each(dictionary, :name, "Oxford")
+        end
+
+        it "checks existance with a message" do
+          dictionary.errors[:name].should eq([ "my test message" ])
+        end
+      end
     end
 
     context "when the document is embedded" do
@@ -118,9 +135,9 @@ describe Mongoid::Validations::UniquenessValidator do
 
         before do
           word.definitions.expects(:where).with(
-            :description => "Testy", :_id => { "$ne" => definition.id }
+            :description => "Testy"
           ).returns(criteria)
-          criteria.expects(:exists?).returns(true)
+          criteria.expects(:count).returns(2)
           validator.validate_each(definition, :description, "Testy")
         end
 
@@ -137,9 +154,9 @@ describe Mongoid::Validations::UniquenessValidator do
 
         before do
           word.definitions.expects(:where).with(
-            :description => "Testy", :_id => { "$ne" => definition.id }
+            :description => "Testy"
           ).returns(criteria)
-          criteria.expects(:exists?).returns(true)
+          criteria.expects(:count).returns(2)
           validator.validate_each(definition, :description, "Testy")
         end
 
@@ -156,9 +173,9 @@ describe Mongoid::Validations::UniquenessValidator do
 
         before do
           word.definitions.expects(:where).with(
-            :description => /^Testy$/i, :_id => { "$ne" => definition.id }
+            :description => /^Testy$/i
           ).returns(criteria)
-          criteria.expects(:exists?).returns(true)
+          criteria.expects(:count).returns(2)
           validator.validate_each(definition, :description, "Testy")
         end
 
@@ -175,10 +192,10 @@ describe Mongoid::Validations::UniquenessValidator do
 
         before do
           word.definitions.expects(:where).with(
-            :description => "Testy", :_id => { "$ne" => definition.id }
+            :description => "Testy"
           ).returns(criteria)
           criteria.expects(:where).with(:part => definition.part).returns(criteria)
-          criteria.expects(:exists?).returns(true)
+          criteria.expects(:count).returns(2)
           validator.validate_each(definition, :description, "Testy")
         end
 

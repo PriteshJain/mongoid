@@ -81,49 +81,6 @@ module Mongoid # :nodoc:
         end
         alias :new :build
 
-        # Creates a new document on the references many relation. This will
-        # save the document if the parent has been persisted.
-        #
-        # @example Create and save the new document.
-        #   person.posts.create(:text => "Testing")
-        #
-        # @param [ Hash ] attributes The attributes to create with.
-        # @param [ Class ] type The optional type of document to create.
-        #
-        # @return [ Document ] The newly created document.
-        #
-        # @since 2.0.0.beta.1
-        def create(attributes = nil, type = nil, &block)
-          super.tap do |doc|
-            base.send(metadata.foreign_key).delete_one(doc.id)
-            base.push(metadata.foreign_key, doc.id)
-            base.synced[metadata.foreign_key] = false
-          end
-        end
-
-        # Creates a new document on the references many relation. This will
-        # save the document if the parent has been persisted and will raise an
-        # error if validation fails.
-        #
-        # @example Create and save the new document.
-        #   person.posts.create!(:text => "Testing")
-        #
-        # @param [ Hash ] attributes The attributes to create with.
-        # @param [ Class ] type The optional type of document to create.
-        #
-        # @raise [ Errors::Validations ] If validation failed.
-        #
-        # @return [ Document ] The newly created document.
-        #
-        # @since 2.0.0.beta.1
-        def create!(attributes = nil, type = nil, &block)
-          super.tap do |doc|
-            base.send(metadata.foreign_key).delete_one(doc.id)
-            base.push(metadata.foreign_key, doc.id)
-            base.synced[metadata.foreign_key] = false
-          end
-        end
-
         # Delete the document from the relation. This will set the foreign key
         # on the document to nil. If the dependent options on the relation are
         # :delete or :destroy the appropriate removal will occur.
@@ -170,6 +127,40 @@ module Mongoid # :nodoc:
         alias :nullify_all :nullify
         alias :clear :nullify
         alias :purge :nullify
+
+        # Substitutes the supplied target documents for the existing documents
+        # in the relation. If the new target is nil, perform the necessary
+        # deletion.
+        #
+        # @example Replace the relation.
+        # person.preferences.substitute([ new_post ])
+        #
+        # @param [ Array<Document> ] replacement The replacement target.
+        #
+        # @return [ Many ] The relation.
+        #
+        # @since 2.0.0.rc.1
+        def substitute(replacement)
+          tap do |proxy|
+            if replacement != proxy.in_memory
+              proxy.purge
+              proxy.push(replacement.compact.uniq) if replacement
+            end
+          end
+        end
+
+        # Get a criteria for the documents without the default scoping
+        # applied.
+        #
+        # @example Get the unscoped criteria.
+        #   person.preferences.unscoped
+        #
+        # @return [ Criteria ] The unscoped criteria.
+        #
+        # @since 2.4.0
+        def unscoped
+          klass.unscoped.any_in(:_id => base.send(metadata.foreign_key))
+        end
 
         private
 
@@ -307,9 +298,9 @@ module Mongoid # :nodoc:
           # @example Get the macro.
           #   Referenced::ManyToMany.macro
           #
-          # @return [ Symbol ] :references_and_referenced_in_many
+          # @return [ Symbol ] :has_and_belongs_to_many
           def macro
-            :references_and_referenced_in_many
+            :has_and_belongs_to_many
           end
 
           # Return the nested builder that is responsible for generating the documents

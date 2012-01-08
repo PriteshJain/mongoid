@@ -152,7 +152,7 @@ module Mongoid #:nodoc:
           else
             unloaded.each do |doc|
               yield(doc)
-              loaded.push(added.delete_one(doc) || doc)
+              loaded.push(added.delete_one(doc) || loaded.delete_one(doc) || doc)
             end
           end
           added.each do |doc|
@@ -315,7 +315,7 @@ module Mongoid #:nodoc:
         #
         # @since 2.1.0
         def size
-          (unloaded ? unloaded.count : loaded.count) + added.count{ |d| d.new? }
+          (unloaded ? unloaded.count : loaded.count) + added.count{ |d| d.new_record? }
         end
         alias :length :size
 

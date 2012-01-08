@@ -35,27 +35,6 @@ describe Mongoid::Config do
     end
   end
 
-  describe ".add_language" do
-
-    context "when adding a language" do
-
-      before do
-        described_class.add_language("de")
-        I18n.reload!
-        I18n.locale = :de
-      end
-
-      after do
-        I18n.locale = :en
-      end
-
-      it "adds the language" do
-        I18n.translate("mongoid.errors.messages.taken").should ==
-          "ist bereits vergeben"
-      end
-    end
-  end
-
   describe ".destructive_fields" do
 
     it "returns a list of method names" do
@@ -93,6 +72,10 @@ describe Mongoid::Config do
 
       it "sets parameterize keys" do
         described_class.parameterize_keys.should == false
+      end
+
+      it "sets scope_overwrite_exception" do
+        described_class.scope_overwrite_exception.should == false
       end
 
       it "sets persist_in_safe_mode" do
@@ -162,6 +145,10 @@ describe Mongoid::Config do
 
   describe ".load!" do
 
+    before(:all) do
+      Object.send(:remove_const, :Rails) if defined?(Rails)
+    end
+
     before do
       ENV["RACK_ENV"] = "test"
       described_class.load!(standard_config)
@@ -185,6 +172,10 @@ describe Mongoid::Config do
 
     it "sets parameterize keys" do
       described_class.parameterize_keys.should == false
+    end
+
+    it "sets scope_overwrite_exception" do
+      described_class.scope_overwrite_exception.should == false
     end
 
     it "sets persist_in_safe_mode" do
@@ -303,12 +294,12 @@ describe Mongoid::Config do
 
     context "when no collection name is provided" do
 
-      let!(:collections) do
+      before do
         Mongoid.purge!
       end
 
       it "purges the post collection" do
-        Post.collection.count.should eq(0)
+        Mongoid.master.collection("posts").count.should eq(0)
       end
     end
   end
@@ -344,6 +335,13 @@ describe Mongoid::Config do
 
       it "defaults to true" do
         described_class.parameterize_keys.should be_true
+      end
+    end
+
+    describe ".scope_overwrite_exception" do
+
+      it "defaults to false" do
+        described_class.scope_overwrite_exception.should be_false
       end
     end
 

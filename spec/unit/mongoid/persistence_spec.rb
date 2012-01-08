@@ -46,7 +46,7 @@ describe Mongoid::Persistence do
         Patient.expects(:new).returns(patient)
         patient.expects(:insert).returns(patient)
         patient.expects(:errors).returns([])
-        patient.expects(:new?).returns(false)
+        patient.expects(:new_record?).returns(false)
       end
 
       it "returns the new document" do
@@ -77,7 +77,7 @@ describe Mongoid::Persistence do
         Patient.expects(:new).returns(patient)
         patient.expects(:insert).returns(patient)
         patient.expects(:errors).at_least_once.returns([])
-        patient.expects(:new?).returns(true)
+        patient.expects(:new_record?).returns(true)
       end
 
       it "raises an error" do
@@ -153,7 +153,7 @@ describe Mongoid::Persistence do
     context "when conditions provided" do
 
       before do
-        Person.expects(:all).with(:conditions => { :title => "Sir" }).returns([ person ])
+        Person.expects(:where).with(:title => "Sir").returns([ person ])
         person.expects(:run_callbacks).with(:destroy).yields
         Mongoid::Persistence::Operations::Remove.expects(:new).with(person, {}).returns(remove)
         remove.expects(:persist).returns(true)
@@ -171,7 +171,7 @@ describe Mongoid::Persistence do
     context "when conditions not provided" do
 
       before do
-        Person.expects(:all).with({}).returns([ person ])
+        Person.expects(:where).with({}).returns([ person ])
         person.expects(:run_callbacks).with(:destroy).yields
         Mongoid::Persistence::Operations::Remove.expects(:new).with(person, {}).returns(remove)
         remove.expects(:persist).returns(true)
